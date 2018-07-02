@@ -1,0 +1,14 @@
+TODO:
+TODO:
+
+- [ ] prometheus rate and latencies (end-to-end)
+
+
+
+Objectives:
+
+Check the impact of the number of subscriptions on the slow consumers.
+Check the impact of the number of clients on the slow consumers.
+Check the impact of the new clients and leaving clients (rollout) on the slow
+consumers.
+
