@@ -1,0 +1,7 @@
+[prune]
+  go-tests = true
+  unused-packages = true
+
+[[override]]
+  name = "github.com/nats-io/go-nats"
+  revision = "d4841f2d6a3ab7745d940768bfbc2fe9d60c65ed"
