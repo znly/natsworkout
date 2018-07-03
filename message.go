@@ -24,17 +24,17 @@ func (m *Message) Timestamp() time.Time {
 }
 
 func (m *Message) MarshalTo(data []byte) (int, error) {
-	if len(data) < 8+len(m.Payload) {
+	if len(data) < 16+len(m.Payload) {
 		return 0, errors.New("buffer to small")
 	}
 	binary.BigEndian.PutUint64(data, m.TimestampNano)
-	binary.BigEndian.PutUint64(data[4:], m.Seq)
-	copy(data[8:], m.Payload)
-	return 8 + len(m.Payload), nil
+	binary.BigEndian.PutUint64(data[8:], m.Seq)
+	copy(data[16:], m.Payload)
+	return 16 + len(m.Payload), nil
 }
 
 func (m *Message) MarshalBinary() ([]byte, error) {
-	data := make([]byte, 8+len(m.Payload))
+	data := make([]byte, 16+len(m.Payload))
 	n, err := m.MarshalTo(data)
 	if err != nil {
 		return nil, err
@@ -43,24 +43,24 @@ func (m *Message) MarshalBinary() ([]byte, error) {
 }
 
 func (m *Message) UnmarshalFrom(data []byte) error {
-	if len(data) < 8 {
+	if len(data) < 16 {
 		return errors.New("invalid data")
 	}
 
 	m.TimestampNano = binary.BigEndian.Uint64(data)
-	m.Seq = binary.BigEndian.Uint64(data[4:])
-	m.Payload = data[10:]
+	m.Seq = binary.BigEndian.Uint64(data[8:])
+	m.Payload = data[16:]
 	return nil
 }
 
 func (m *Message) UnmarshalBinary(data []byte) error {
-	if len(data) < 8 {
+	if len(data) < 16 {
 		return errors.New("invalid data")
 	}
 
 	m.TimestampNano = binary.BigEndian.Uint64(data)
-	m.Seq = binary.BigEndian.Uint64(data[4:])
-	m.Payload = make([]byte, len(data)-10)
-	copy(m.Payload, data[10:])
+	m.Seq = binary.BigEndian.Uint64(data[8:])
+	m.Payload = make([]byte, len(data)-16)
+	copy(m.Payload, data[16:])
 	return nil
 }

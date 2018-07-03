@@ -36,7 +36,7 @@ func OpenWords() (*Words, error) {
 	for scanner.Scan() {
 		word := scanner.Text()
 		if isAlpha(word) {
-			words = append(words)
+			words = append(words, word)
 		}
 	}
 
