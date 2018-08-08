@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 
@@ -9,15 +10,17 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/time/rate"
 
 	"github.com/znly/natsworkout"
 	"github.com/znly/natsworkout/nanotime"
 )
 
 var (
-	numSubs = flag.Int("numsubs", 1, "number of subscriptions")
+	numTopics = flag.Int("numtopics", 1, "number of topics")
 
-	debugAddr = flag.String("debugport", ":0", "debug addr")
+	rateLimitPerSecond = flag.Float64("rate", 0, "rate per second")
+	debugAddr          = flag.String("debugport", ":0", "debug addr")
 )
 
 func main() {
@@ -34,6 +37,8 @@ func main() {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
+
+	rl := rate.NewLimiter(rate.Limit(*rateLimitPerSecond), 1)
 
 	options := nats.Options{}
 	options.Url = "nats://localhost:4222"
@@ -62,20 +67,22 @@ func main() {
 
 	wc := words.Cursor()
 
-	subs := make([]string, *numSubs)
-	for i := 0; i < *numSubs; i++ {
+	subs := make([]string, *numTopics)
+	for i := 0; i < *numTopics; i++ {
 		subs[i] = wc.Next()
 	}
 
-	// timer := time.NewTicker(10 * time.Millisecond)
-	// defer timer.Stop()
+	ctx := context.Background()
 
 	var msg natsworkout.Message
 	wbuf := make([]byte, 1024*1024)
 	buf := make([]byte, 4096*1024)
 	var seq uint64
+
+	log.Printf("started rate=%f/s", *rateLimitPerSecond)
+
 	for i := 0; ; i++ {
-		// <-timer.C
+
 		var n int
 		for i := 0; i < 3; i++ {
 			w := wc.Next()
@@ -99,14 +106,12 @@ func main() {
 			panic(err)
 		}
 
+		rl.Wait(ctx)
+
 		if err := nc.Publish(subs[i%len(subs)], buf[:n]); err != nil {
 			panic(err)
 		}
-
-		nc.Flush()
 	}
-
-	log.Println("started.")
 
 	<-make(chan struct{})
 }

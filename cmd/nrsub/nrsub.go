@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -77,7 +78,7 @@ func newHandler(nc *nats.Conn, subj string) (*handler, error) {
 			<-time.After(3 * time.Second)
 			n, err := handler.Subscription.Dropped()
 			if err != nil {
-				log.Printf("dropped control err=%v", err)
+				return
 			}
 			if n != dropped {
 				log.Printf("dropped=%d", n)
@@ -99,12 +100,11 @@ func (h *handler) handle(msg *nats.Msg) {
 
 	delta := (nanotime.Offset() - time.Duration(h.msg.TimestampNano)) * time.Nanosecond
 	latency.Observe(float64(delta) / float64(time.Second))
-	log.Printf("latency=%s", delta)
+	// log.Printf("latency=%s", delta)
 
-	if l := *simulatedLatency; l > 0 {
-		time.Sleep(l)
-	}
-
+	// if l := *simulatedLatency; l > 0 {
+	// 	time.Sleep(l)
+	// }
 }
 
 var (
@@ -131,7 +131,7 @@ func main() {
 	options.Url = "nats://localhost:4222"
 
 	options.ReconnectedCB = func(nc *nats.Conn) {
-		log.Println("NATS: Got reconnected: %v", nc.LastError())
+		log.Printf("NATS: Got reconnected: %v", nc.LastError())
 	}
 
 	options.AsyncErrorCB = func(nc *nats.Conn, s *nats.Subscription, err error) {
@@ -159,27 +159,61 @@ func main() {
 				TimestampNano: uint64(nanotime.Offset()),
 				Seq:           i,
 			}
+			start := time.Now()
 			data, _ := msg.MarshalBinary()
 			if err := nc.Publish("controlz", data); err != nil {
 				log.Printf("control error: %v", err)
+			} else {
+				log.Printf("controlz latency=%s", time.Since(start))
 			}
 		}
 	}()
 
 	wc := words.Cursor()
+	subjects := make([]string, *numSubs)
+	for i := 0; i < len(subjects); i++ {
+		subjects[i] = wc.Next()
+	}
+
 	handlers := make([]*handler, *numSubs)
 
-	for i := 0; i < len(handlers); i++ {
-		subject := wc.Next()
-		handler, err := newHandler(nc, subject)
-		if err != nil {
-			log.Fatalf("could not subscribe: %v", err)
+	log.Printf("start subscriptions=%d handlers=%d", len(subjects), len(handlers))
+
+	go func() {
+		for j := 0; ; j++ {
+			for i := 0; i < len(handlers); i++ {
+				subj := subjects[i%len(subjects)]
+				log.Printf("subscribe to=%s", subj)
+				handler, err := newHandler(nc, subj)
+				if err != nil {
+					log.Fatalf("could not subscribe: %v", err)
+				}
+
+				handlers[i] = handler
+			}
+
+			<-time.After(3 * time.Second)
+
+			for i := 0; i < len(handlers); i++ {
+				log.Printf("unsubscribe from=%s", handlers[i].Subject)
+				t := timeit(fmt.Sprintf("unsubscribe from=%s duration=%%s", handlers[i].Subject))
+				if err := handlers[i].Unsubscribe(); err != nil {
+					log.Printf("unsubscribe error=%v", err)
+				}
+				t()
+			}
 		}
 
-		handlers[i] = handler
-	}
+	}()
 
 	log.Println("started.")
 
 	<-make(chan struct{})
+}
+
+func timeit(format string) func() {
+	start := nanotime.Offset()
+	return func() {
+		log.Printf(format, nanotime.Offset()-start)
+	}
 }

@@ -26,7 +26,7 @@
     "encoders/builtin",
     "util"
   ]
-  revision = "d4841f2d6a3ab7745d940768bfbc2fe9d60c65ed"
+  revision = "9f628585fc0c8523006ed1d63d07ee6059defcb8"
 
 [[projects]]
   name = "github.com/nats-io/nuid"
@@ -67,9 +67,21 @@
   ]
   revision = "40f013a808ec4fa79def444a1a56de4d1727efcb"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "039a4258aec0ad3c79b905677cceeab13b296a77"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/time"
+  packages = ["rate"]
+  revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4742f62c6ca97f94599416020af6c76bc1f9132b42fae23c23a74f6d24011cda"
+  inputs-digest = "ff73a25a2982f434220107b9525f49dd340c4f15e1085ebeec3982aa27a4d857"
   solver-name = "gps-cdcl"
   solver-version = 1

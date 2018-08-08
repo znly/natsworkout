@@ -4,4 +4,4 @@
 
 [[override]]
   name = "github.com/nats-io/go-nats"
-  revision = "d4841f2d6a3ab7745d940768bfbc2fe9d60c65ed"
+  revision = "9f628585fc0c8523006ed1d63d07ee6059defcb8"
